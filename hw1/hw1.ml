@@ -71,17 +71,16 @@ let rec merge_sort x =
 let rec string_of_lambda lambda =
   match lambda with
   | Var x -> x
-  | Abs (x, y) -> "\\" ^ x ^ "." ^ string_of_lambda y
+  | Abs (x, y) -> "\\" ^ x ^ ".(" ^ string_of_lambda y ^ ")"
   | App (x, y) -> "(" ^ string_of_lambda x ^ ") (" ^ string_of_lambda y ^ ")";;
 
 let lambda_of_string x =
-  let stream = Stream.of_string (input ^ ";") in
+  let stream = Stream.of_string (x ^ ";") in
   let tokens = Genlex.make_lexer ["\\"; "."; "("; ")"; ";"] stream in
   let next() = Stream.next tokens in
   let peek() = Stream.peek tokens in
-  let check key_char error_msg = if (next() <> Genlex.Kwd key_char) then failwith error_msg in
-  let check_parenthesis() = check ")" "Parenthesis not closed" in
-  let check_fullstop() = check "." "Full stop symbol not found" in
+  let check_parenthesis() = if (next() <> Genlex.Kwd ")") then failwith "Parenthesis not closed" in
+  let check_fullstop() = if (next() <> Genlex.Kwd ".") then failwith "Full stop symbol not found" in
 
   let rec parse_lambda() =
     match next() with
@@ -121,6 +120,7 @@ let lambda_of_string x =
     match peek() with
     | None       -> failwith "Unexpected end of string"
     | Some token -> parse_app lambda token
-  in parse_lambda();;;;
+  in parse_lambda();;
 
-int_of_peano (power (peano_of_int 11) (peano_of_int 5));;
+lambda_of_string "\\n.(\\p.p (\\x.\\y.x)) (n (\\p.\\f.f ((\\p.p (\\x.\\y.y)) p) ((\\n.\\f.\\x.f (n f x)) ((\\p.p (\\x.\\y.y)) p))) (\\f.f (\\f.\\x.x) (\\f.\\x.x)))";;
+string_of_lambda (lambda_of_string "\\n.(\\p.p (\\x.\\y.x)) (n (\\p.\\f.f ((\\p.p (\\x.\\y.y)) p) ((\\n.\\f.\\x.f (n f x)) ((\\p.p (\\x.\\y.y)) p))) (\\f.f (\\f.\\x.x) (\\f.\\x.x)))");;
