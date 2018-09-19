@@ -123,4 +123,5 @@ let lambda_of_string x =
   in parse_lambda();;
 
 lambda_of_string "\\n.(\\p.p (\\x.\\y.x)) (n (\\p.\\f.f ((\\p.p (\\x.\\y.y)) p) ((\\n.\\f.\\x.f (n f x)) ((\\p.p (\\x.\\y.y)) p))) (\\f.f (\\f.\\x.x) (\\f.\\x.x)))";;
-string_of_lambda (lambda_of_string "\\n.(\\p.p (\\x.\\y.x)) (n (\\p.\\f.f ((\\p.p (\\x.\\y.y)) p) ((\\n.\\f.\\x.f (n f x)) ((\\p.p (\\x.\\y.y)) p))) (\\f.f (\\f.\\x.x) (\\f.\\x.x)))");;
+print_string ((string_of_lambda (lambda_of_string "\\n.(\\p.p (\\x.\\y.x)) (n (\\p.\\f.f ((\\p.p (\\x.\\y.y)) p) ((\\n.\\f.\\x.f (n f x)) ((\\p.p (\\x.\\y.y)) p))) (\\f.f (\\f.\\x.x) (\\f.\\x.x)))")) ^ "
+n");;
