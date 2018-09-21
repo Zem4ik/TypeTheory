@@ -79,38 +79,7 @@ let infer_simp_type lambda =
 
 
 
-(** Returns a composition of two substitutions *)
-let compose_subst subst1 subst2 =
-  let subst2 = StringMap.map (apply_type_subst subst1) subst2 in
-  StringMap.merge (fun key v1 v2 ->
-      match (v1, v2) with
-      | (None, None) -> None
-      | (Some v, None) -> Some v
-      | (None, Some v) -> Some v
-      | (Some v1, Some v2) -> Some v2) subst1 subst2;;
-(* StringMap.union (fun key v1 v2 -> Some v2) subst1 subst2;; *)
 
-(** Returns a type environment with applied substitution *)
-let apply_subst_to_env subst type_env =
-  StringMap.map (apply_type_subst subst) type_env;;
-
-(** Abstracts a type over all type variables which are free
-    in the type but not free in the given type environment *)
-let generalize type_env hm_type =
-  let add_free_types key value = StringSet.union (free_types value) in
-  let free_env_types = StringMap.fold add_free_types type_env StringSet.empty in
-  let free_hm_types = free_types hm_type in
-  let new_forall_vars = StringSet.diff free_hm_types free_env_types in
-  let add_quantifier var hm_type = HM_ForAll (var, hm_type) in
-  StringSet.fold add_quantifier new_forall_vars hm_type;;
-
-(** Replaces all bound type variables in a type with fresh type variables *)
-let rec instantiate hm_type =
-  match hm_type with
-  | HM_ForAll (a, b) ->
-    let subst = StringMap.singleton a (HM_Elem (Stream.next unique_var)) in
-    apply_type_subst subst (instantiate b)
-  | _ -> hm_type;;
 
 exception CannotSolve;;
 
@@ -156,12 +125,47 @@ let algorithm_w hm_lambda =
         HM_ForAll (a, apply_type_subst (StringMap.remove a subst) b)
   in
 
+  let compose_subst subst1 subst2 =
+    let subst2 = StringMap.map (apply_type_subst subst1) subst2 in
+    StringMap.merge (fun key v1 v2 ->
+        match (v1, v2) with
+        | (None, None)        -> None
+        | (Some v, None)      -> Some v
+        | (None, Some v)      -> Some v
+        | (Some v1, Some v2)  -> Some v2)
+        subst1
+        subst2
+  in
+
+
+  let apply_subst_to_env subst type_env =
+    StringMap.map (apply_type_subst subst) type_env
+  in
+
+
+  let generalize type_env hm_type =
+    let add_free_types key value = StringSet.union (free_types value) in
+    let free_env_types = StringMap.fold add_free_types type_env StringSet.empty in
+    let free_hm_types = free_types hm_type in
+    let new_forall_vars = StringSet.diff free_hm_types free_env_types in
+    let add_quantifier var hm_type = HM_ForAll (var, hm_type) in
+    StringSet.fold add_quantifier new_forall_vars hm_type
+  in
+
+  let rec instantiate hm_type =
+    match hm_type with
+    | HM_ForAll (a, b) ->
+      let subst = StringMap.singleton a (HM_Elem (Stream.next unique_var)) in
+      apply_type_subst subst (instantiate b)
+    | _ -> hm_type
+  in
+
 
   let rec algorithm_w_impl type_env hm_lambda =
     match hm_lambda with
     | HM_Var a when StringMap.mem a type_env ->
       (StringMap.empty, instantiate (StringMap.find a type_env))
-    | HM_Var a -> raise CannotSolve
+    | HM_Var a      -> raise CannotSolve
     | HM_App (a, b) ->
       (let (s1, t1) = algorithm_w_impl type_env a in
        let (s2, t2) = algorithm_w_impl (apply_subst_to_env s1 type_env) b in
@@ -170,8 +174,8 @@ let algorithm_w hm_lambda =
        let right = HM_Arrow (t2, new_type) in
        let equation = (to_term left, to_term right) in
        match solve_system [equation] with
-       | None -> raise CannotSolve
-       | Some answer ->
+       | None         -> raise CannotSolve
+       | Some answer  ->
          let add_subst (str, term) = StringMap.add str (to_type term) in
          let v = List.fold_right add_subst answer StringMap.empty in
          let unifier = compose_subst v (compose_subst s2 s1) in
@@ -192,6 +196,7 @@ let algorithm_w hm_lambda =
   let free = free_vars hm_lambda in
   let bound_to_unique v = StringMap.add v (HM_Elem (Stream.next unique_var)) in
   let type_environment = StringSet.fold bound_to_unique free StringMap.empty in
+  
   try
     let (unifier, hm_type) = algorithm_w_impl type_environment hm_lambda in
     Some (StringMap.bindings unifier, hm_type)
