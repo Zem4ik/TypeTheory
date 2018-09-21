@@ -42,10 +42,11 @@ let substitute src dest key =
 
 (* Проверить свободу для подстановки. Параметры:
    что подставляем, где подставляем, вместо чего подставляем *)
-let free_to_subst src dest key =
-  try
-    let _ = substitute src dest key in true
-  with _                            -> false;;
+let rec free_to_subst src dest var =
+  match dest with
+	| Var _       -> true
+	| Abs (x, y)  -> x = var || (not (List.mem var (free_vars y))) || (not (List.mem x (free_vars src)) && free_to_subst src y var)
+	| App (x, y)  -> free_to_subst src x var && free_to_subst src y var;;
 
 (* Проверить, находится ли лямбда-выражение в нормальной форме *)
 let rec is_normal_form lambda =
