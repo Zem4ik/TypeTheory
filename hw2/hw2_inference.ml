@@ -196,8 +196,8 @@ let algorithm_w hm_lambda =
   let free = free_vars hm_lambda in
   let bound_to_unique v = StringMap.add v (HM_Elem (Stream.next unique_var)) in
   let type_environment = StringSet.fold bound_to_unique free StringMap.empty in
-  
+
   try
     let (unifier, hm_type) = algorithm_w_impl type_environment hm_lambda in
     Some (StringMap.bindings unifier, hm_type)
-  with (NoSolution e) -> None;;
+  with CannotSolve -> None;;
